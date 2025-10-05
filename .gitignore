@@ -1,0 +1,23 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Environment files
+appsettings.Development.json
+appsettings.Local.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

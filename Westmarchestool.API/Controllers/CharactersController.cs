@@ -125,6 +125,22 @@ namespace Westmarchestool.API.Controllers
             if (userIdClaim == null) return null;
             return int.Parse(userIdClaim.Value);
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCharacter(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var result = await _characterService.DeleteCharacterAsync(id, userId.Value);
+
+            if (!result)
+            {
+                return NotFound(new { message = "Character not found or access denied" });
+            }
+
+            return Ok(new { message = "Character deleted successfully" });
+        }
     }
 
     public class UpdateStatusDto

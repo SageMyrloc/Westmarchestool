@@ -19,9 +19,20 @@ namespace Westmarchestool.API.Services
         {
             try
             {
-                // Parse the Pathbuilder JSON
-                var jsonDoc = JsonDocument.Parse(importDto.PathbuilderJson);
-                var build = jsonDoc.RootElement.GetProperty("build");
+                var root = importDto.PathbuilderJson;
+
+                // Handle both formats: raw export has "success" wrapper, direct build doesn't
+                JsonElement build;
+                if (root.TryGetProperty("success", out _) && root.TryGetProperty("build", out var buildProp))
+                {
+                    // Format: {"success": true, "build": {...}}
+                    build = buildProp;
+                }
+                else
+                {
+                    // Format: direct build object {...}
+                    build = root;
+                }
 
                 // Extract key fields
                 var character = new Character
@@ -49,11 +60,11 @@ namespace Westmarchestool.API.Services
                 _context.Characters.Add(character);
                 await _context.SaveChangesAsync();
 
-                // Store the full JSON
+                // Store the full JSON - serialize the JsonElement back to string
                 var jsonData = new CharacterJsonData
                 {
                     CharacterId = character.Id,
-                    JsonContent = importDto.PathbuilderJson
+                    JsonContent = JsonSerializer.Serialize(importDto.PathbuilderJson)
                 };
                 _context.CharacterJsonData.Add(jsonData);
 
@@ -71,9 +82,16 @@ namespace Westmarchestool.API.Services
 
                 return await GetCharacterByIdAsync(character.Id, userId);
             }
+            catch (JsonException jsonEx)
+            {
+                Console.WriteLine($"JSON Parse error: {jsonEx.Message}");
+                Console.WriteLine($"Path: {jsonEx.Path}");
+                return null;
+            }
             catch (Exception ex)
             {
-                // Log error (you'll add logging later)
+                Console.WriteLine($"Import error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return null;
             }
         }
@@ -221,6 +239,34 @@ namespace Westmarchestool.API.Services
                 CreatedDate = character.CreatedDate,
                 OwnerUsername = character.User?.Username ?? ""
             };
+        }
+    
+    public async Task<bool> DeleteCharacterAsync(int characterId, int requestingUserId)
+        {
+            var character = await _context.Characters
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == characterId);
+
+            if (character == null) return false;
+
+            // Check permissions: Owner can delete their own, Admin can delete any
+            var requestingUser = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == requestingUserId);
+
+            if (requestingUser == null) return false;
+
+            var isOwner = character.UserId == requestingUserId;
+            var isAdmin = requestingUser.UserRoles.Any(ur => ur.Role.Name == "Admin");
+
+            if (!isOwner && !isAdmin) return false;
+
+            // Delete character (cascade will handle related data)
+            _context.Characters.Remove(character);
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 }

@@ -71,11 +71,6 @@ namespace Westmarchestool.API.Data
                 .HasForeignKey(sa => sa.CharacterId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Character name must be unique per user
-            modelBuilder.Entity<Character>()
-                .HasIndex(c => new { c.UserId, c.Name })
-                .IsUnique();
-
             // Seed initial roles
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "Admin", Description = "Full system access" },

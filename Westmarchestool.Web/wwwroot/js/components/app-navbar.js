@@ -15,34 +15,34 @@
     render(showAuth, activePage) {
         this.innerHTML = `
             <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-secondary px-4">
-                <a class="navbar-brand me-4" href="/">
-                    <div class="home-button">TB</div>
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link ${activePage === 'home' ? 'active' : ''}" href="/">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link ${activePage === 'characters' ? 'active' : ''}" href="/characters.html">Characters</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link ${activePage === 'sessions' ? 'active' : ''}" href="/sessions.html">Sessions</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link ${activePage === 'shops' ? 'active' : ''}" href="/shops.html">Shops</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link ${activePage === 'map' ? 'active' : ''}" href="/map.html">Map</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link ${activePage === 'archives' ? 'active' : ''}" href="/archives.html">Archives</a>
-                        </li>
-                    </ul>
-                    ${showAuth ? this.renderAuthButtons() : this.renderUserMenu()}
+                    <a class="navbar-brand me-4" href="/">
+                            <div class="home-button">TB</div>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav me-auto">
+                            <li class="nav-item">
+                                <a class="nav-link ${activePage === 'home' ? 'active' : ''}" href="/">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link ${activePage === 'characters' ? 'active' : ''}" href="/characters.html">Characters</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link ${activePage === 'sessions' ? 'active' : ''}" href="/sessions.html">Sessions</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link ${activePage === 'shops' ? 'active' : ''}" href="/shops.html">Shops</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link ${activePage === 'map' ? 'active' : ''}" href="/map.html">Map</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link ${activePage === 'archives' ? 'active' : ''}" href="/archives.html">Archives</a>
+                            </li>
+                        </ul>
+                        ${showAuth ? this.renderAuthButtons() : this.renderUserMenu()}                    
                 </div>
             </nav>
         `;

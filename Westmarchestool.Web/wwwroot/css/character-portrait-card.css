@@ -4,6 +4,20 @@
     margin: 0 auto;
 }
 
+.character-portrait-card.clickable {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+ }
+
+.character-portrait-card.clickable:hover {
+    transform: scale(1.02);
+}
+
+.character-portrait-card.clickable:hover .frame-overlay {
+    filter: brightness(1.1);
+    filter: brightness(0.5);
+}
+
 .portrait-frame {
     position: relative;
     width: 80%;

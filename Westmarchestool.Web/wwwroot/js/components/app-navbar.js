@@ -4,47 +4,54 @@
     }
 
     connectedCallback() {
-        // Get attributes or use defaults
-        const showAuth = this.getAttribute('show-auth') !== 'false'; // default true
         const activePage = this.getAttribute('active') || '';
 
+        // Determine auth state based on token, not attribute
+        const token = localStorage.getItem('token');
+        const showAuth = !token; // Show auth buttons if NO token exists
+
         this.render(showAuth, activePage);
-        this.attachEventListeners();
+
+        setTimeout(() => {
+            this.attachEventListeners();
+        }, 0);
     }
 
     render(showAuth, activePage) {
         this.innerHTML = `
             <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-secondary px-4">
-                    <a class="navbar-brand me-4" href="/">
-                            <div class="home-button">TB</div>
-                    </a>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-                    <div class="collapse navbar-collapse" id="navbarNav">
-                        <ul class="navbar-nav me-auto">
-                            <li class="nav-item">
-                                <a class="nav-link ${activePage === 'home' ? 'active' : ''}" href="/">Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link ${activePage === 'characters' ? 'active' : ''}" href="/characters.html">Characters</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link ${activePage === 'sessions' ? 'active' : ''}" href="/sessions.html">Sessions</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link ${activePage === 'shops' ? 'active' : ''}" href="/shops.html">Shops</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link ${activePage === 'map' ? 'active' : ''}" href="/map.html">Map</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link ${activePage === 'archives' ? 'active' : ''}" href="/archives.html">Archives</a>
-                            </li>
-                        </ul>
-                        ${showAuth ? this.renderAuthButtons() : this.renderUserMenu()}                    
+                <a class="navbar-brand me-4" href="/">
+                    <div class="home-button">TB</div>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link ${activePage === 'home' ? 'active' : ''}" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link ${activePage === 'characters' ? 'active' : ''}" href="/characters.html">Characters</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link ${activePage === 'sessions' ? 'active' : ''}" href="/sessions.html">Sessions</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link ${activePage === 'shops' ? 'active' : ''}" href="/shops.html">Shops</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link ${activePage === 'map' ? 'active' : ''}" href="/map.html">Map</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link ${activePage === 'archives' ? 'active' : ''}" href="/archives.html">Archives</a>
+                        </li>
+                    </ul>
+                    ${showAuth ? this.renderAuthButtons() : this.renderUserMenu()}
                 </div>
             </nav>
+            
+            ${this.renderModals()}
         `;
     }
 
@@ -67,28 +74,71 @@
         `;
     }
 
+    renderModals() {
+        return `
+            <login-modal id="loginModal"></login-modal>
+            <register-modal id="registerModal"></register-modal>
+        `;
+    }
+
     attachEventListeners() {
-        // Check if user is logged in
+        console.log('attachEventListeners called');  // <-- ADD THIS
         const token = localStorage.getItem('token');
+        console.log('Token:', token);  // <-- ADD THIS
 
         if (!token) {
-            // Attach login/register listeners
+            console.log('No token, showing auth buttons');  // <-- ADD THIS
+    // rest of code...
+            // Login/Register button listeners
             const signInBtn = this.querySelector('#signInBtn');
             const registerBtn = this.querySelector('#registerBtn');
 
+            console.log('Attaching listeners, signInBtn:', signInBtn, 'registerBtn:', registerBtn);
+
             if (signInBtn) {
-                signInBtn.addEventListener('click', () => {
-                    this.dispatchEvent(new CustomEvent('show-login', { bubbles: true }));
+                signInBtn.addEventListener('click', async () => {
+                    console.log('Sign In button clicked');
+
+                    // Wait for custom element to be ready
+                    await customElements.whenDefined('login-modal');
+                    console.log('login-modal is defined');
+
+                    const loginModal = this.querySelector('#loginModal');
+                    console.log('loginModal element:', loginModal);
+                    console.log('loginModal.show exists?', typeof loginModal.show);
+
+                    if (loginModal && loginModal.show) {
+                        console.log('Calling show()');
+                        loginModal.show();
+                    } else {
+                        console.log('Could not call show()');
+                    }
                 });
             }
 
             if (registerBtn) {
-                registerBtn.addEventListener('click', () => {
-                    this.dispatchEvent(new CustomEvent('show-register', { bubbles: true }));
+                registerBtn.addEventListener('click', async () => {
+                    console.log('Register button clicked');
+
+                    // Wait for custom element to be ready
+                    await customElements.whenDefined('register-modal');
+                    console.log('register-modal is defined');
+
+                    const registerModal = this.querySelector('#registerModal');
+                    console.log('registerModal element:', registerModal);
+                    console.log('registerModal.show exists?', typeof registerModal.show);
+
+                    if (registerModal && registerModal.show) {
+                        console.log('Calling show()');
+                        registerModal.show();
+                    } else {
+                        console.log('Could not call show()');
+                    }
                 });
             }
+
         } else {
-            // Attach logout listener
+            // Logout button listener
             const logoutBtn = this.querySelector('#logoutBtn');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', () => {

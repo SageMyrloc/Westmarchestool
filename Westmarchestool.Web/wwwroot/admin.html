@@ -1,0 +1,65 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | The Torchbearers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="bg-dark text-light">
+    <!-- Navbar -->
+    <app-navbar active="admin"></app-navbar>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4 px-4">
+        <div class="page-header mb-4">
+            <h1 class="text-warning">Admin Panel</h1>
+            <p class="text-muted">Manage users and accounts</p>
+        </div>
+
+        <!-- User Management Section -->
+        <div class="card bg-black border-secondary mb-4">
+            <div class="card-body">
+                <h3 class="text-warning mb-3">User Management</h3>
+
+                <div id="userList">
+                    <p class="text-center text-muted">Loading users...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-warning">Reset Password</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Reset password for user: <strong id="resetUsername"></strong></p>
+                    <input type="hidden" id="resetUserId">
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="newPassword" placeholder="Enter new password">
+                        <small class="text-muted">Minimum 8 characters</small>
+                    </div>
+                    <div id="resetError" class="alert alert-danger d-none"></div>
+                    <div id="resetSuccess" class="alert alert-success d-none"></div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" id="confirmResetBtn">Reset Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/components/app-navbar.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/admin-page.js"></script>
+</body>
+</html>

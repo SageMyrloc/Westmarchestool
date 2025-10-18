@@ -8,5 +8,8 @@ namespace Westmarchestool.API.Services
         Task<AuthResponseDto?> LoginAsync(LoginDto loginDto);
         Task<UserDto?> GetUserByIdAsync(int userId);
         Task<bool> UnlockUserAsync(int userId);
+        Task<bool> ResetPasswordAsync(int userId, string newPassword);
+        Task<List<UserDto>> GetAllUsersAsync();
+
     }
 }

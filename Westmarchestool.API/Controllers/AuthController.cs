@@ -76,6 +76,25 @@ namespace Westmarchestool.API.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPost("unlock/{userId}")]
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _authService.ResetPasswordAsync(dto.UserId, dto.NewPassword);
+
+            if (!result)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            return Ok(new { message = "Password reset successfully" });
+        }
         public async Task<IActionResult> UnlockUser(int userId)
         {
             var result = await _authService.UnlockUserAsync(userId);
@@ -86,6 +105,14 @@ namespace Westmarchestool.API.Controllers
             }
 
             return Ok(new { message = "User unlocked successfully" });
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("users")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _authService.GetAllUsersAsync();
+            return Ok(users);
         }
     }
 }

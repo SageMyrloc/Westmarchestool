@@ -3,21 +3,45 @@
         super();
     }
 
-    connectedCallback() {
+    async connectedCallback() {
         const activePage = this.getAttribute('active') || '';
 
-        // Determine auth state based on token, not attribute
+        // Determine auth state based on token
         const token = localStorage.getItem('token');
-        const showAuth = !token; // Show auth buttons if NO token exists
+        const showAuth = !token;
+        
+        // Check if user is admin
+        let isAdmin = false;
+        if (token) {
+            isAdmin = await this.checkIfAdmin(token);
+        }
 
-        this.render(showAuth, activePage);
+        this.render(showAuth, activePage, isAdmin);
 
         setTimeout(() => {
             this.attachEventListeners();
         }, 0);
     }
 
-    render(showAuth, activePage) {
+    async checkIfAdmin(token) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/Auth/me`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) return false;
+
+            const user = await response.json();
+            return user.roles && user.roles.includes('Admin');
+        } catch (error) {
+            console.error('Error checking admin status:', error);
+            return false;
+        }
+    }
+
+    render(showAuth, activePage, isAdmin) {
         this.innerHTML = `
             <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-secondary px-4">
                 <a class="navbar-brand me-4" href="/">
@@ -34,6 +58,7 @@
                         <li class="nav-item">
                             <a class="nav-link ${activePage === 'characters' ? 'active' : ''}" href="/characters.html">Characters</a>
                         </li>
+                        <!-- Coming soon:
                         <li class="nav-item">
                             <a class="nav-link ${activePage === 'sessions' ? 'active' : ''}" href="/sessions.html">Sessions</a>
                         </li>
@@ -46,6 +71,11 @@
                         <li class="nav-item">
                             <a class="nav-link ${activePage === 'archives' ? 'active' : ''}" href="/archives.html">Archives</a>
                         </li>
+                        ${isAdmin ? `
+                        <li class="nav-item">
+                            <a class="nav-link ${activePage === 'admin' ? 'active' : ''}" href="/admin.html">Admin</a>
+                        </li>
+                        ` : ''}
                     </ul>
                     ${showAuth ? this.renderAuthButtons() : this.renderUserMenu()}
                 </div>
@@ -82,57 +112,29 @@
     }
 
     attachEventListeners() {
-        console.log('attachEventListeners called');  // <-- ADD THIS
         const token = localStorage.getItem('token');
-        console.log('Token:', token);  // <-- ADD THIS
 
         if (!token) {
-            console.log('No token, showing auth buttons');  // <-- ADD THIS
-    // rest of code...
             // Login/Register button listeners
             const signInBtn = this.querySelector('#signInBtn');
             const registerBtn = this.querySelector('#registerBtn');
 
-            console.log('Attaching listeners, signInBtn:', signInBtn, 'registerBtn:', registerBtn);
-
             if (signInBtn) {
                 signInBtn.addEventListener('click', async () => {
-                    console.log('Sign In button clicked');
-
-                    // Wait for custom element to be ready
                     await customElements.whenDefined('login-modal');
-                    console.log('login-modal is defined');
-
                     const loginModal = this.querySelector('#loginModal');
-                    console.log('loginModal element:', loginModal);
-                    console.log('loginModal.show exists?', typeof loginModal.show);
-
                     if (loginModal && loginModal.show) {
-                        console.log('Calling show()');
                         loginModal.show();
-                    } else {
-                        console.log('Could not call show()');
                     }
                 });
             }
 
             if (registerBtn) {
                 registerBtn.addEventListener('click', async () => {
-                    console.log('Register button clicked');
-
-                    // Wait for custom element to be ready
                     await customElements.whenDefined('register-modal');
-                    console.log('register-modal is defined');
-
                     const registerModal = this.querySelector('#registerModal');
-                    console.log('registerModal element:', registerModal);
-                    console.log('registerModal.show exists?', typeof registerModal.show);
-
                     if (registerModal && registerModal.show) {
-                        console.log('Calling show()');
                         registerModal.show();
-                    } else {
-                        console.log('Could not call show()');
                     }
                 });
             }

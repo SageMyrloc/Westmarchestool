@@ -164,6 +164,41 @@ namespace Westmarchestool.API.Services
             return true;
         }
 
+        public async Task<bool> ResetPasswordAsync(int userId, string newPassword)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            // Hash the new password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+            // Unlock the account if it was locked
+            user.IsLocked = false;
+            user.FailedLoginAttempts = 0;
+            user.LockoutEnd = null;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        
+        public async Task<List<UserDto>> GetAllUsersAsync()
+        {
+            var users = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .OrderBy(u => u.Username)
+                .ToListAsync();
+
+            return users.Select(u => new UserDto
+            {
+                Id = u.Id,
+                Username = u.Username,
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                CreatedDate = u.CreatedDate,
+                IsLocked = u.IsLocked
+            }).ToList();
+        }
+        
         private string GenerateJwtToken(int userId, string username, List<string> roles)
         {
             var key = new SymmetricSecurityKey(

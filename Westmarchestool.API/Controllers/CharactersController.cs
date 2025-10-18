@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Westmarchestool.API.DTOs;
 using Westmarchestool.API.Models;
 using Westmarchestool.API.Services;
+using Westmarchestool.API.Data;
 
 namespace Westmarchestool.API.Controllers
 {
@@ -13,10 +14,12 @@ namespace Westmarchestool.API.Controllers
     public class CharactersController : ControllerBase
     {
         private readonly ICharacterService _characterService;
+        private readonly ApplicationDbContext _context;
 
-        public CharactersController(ICharacterService characterService)
+        public CharactersController(ICharacterService characterService, ApplicationDbContext context)
         {
             _characterService = characterService;
+            _context = context;
         }
 
         [HttpPost("import")]
@@ -119,13 +122,6 @@ namespace Westmarchestool.API.Controllers
             return Ok(new { message = "Character status updated successfully" });
         }
 
-        private int? GetCurrentUserId()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return null;
-            return int.Parse(userIdClaim.Value);
-        }
-
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCharacter(int id)
         {
@@ -140,6 +136,51 @@ namespace Westmarchestool.API.Controllers
             }
 
             return Ok(new { message = "Character deleted successfully" });
+        }
+
+        [HttpGet("{id}/portrait")]
+        [AllowAnonymous]  // Allow anyone to view portraits
+        public async Task<IActionResult> GetCharacterPortrait(int id)
+        {
+            // Get character directly from database (no ownership check for public portraits)
+            var character = await _context.Characters.FindAsync(id);
+
+            if (character == null)
+            {
+                return NotFound(new { message = "Character not found" });
+            }
+
+            // Determine the image path
+            string imagePath;
+
+            if (!string.IsNullOrEmpty(character.PortraitUrl))
+            {
+                // Use the character's portrait
+                imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", character.PortraitUrl.TrimStart('/'));
+            }
+            else
+            {
+                // Use placeholder
+                imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "portraits", "placeholder.png");
+            }
+
+            // Check if file exists
+            if (!System.IO.File.Exists(imagePath))
+            {
+                // Fall back to placeholder
+                imagePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "portraits", "placeholder.png");
+            }
+
+            // Return the image file
+            var imageBytes = await System.IO.File.ReadAllBytesAsync(imagePath);
+            return File(imageBytes, "image/png");
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return null;
+            return int.Parse(userIdClaim.Value);
         }
     }
 

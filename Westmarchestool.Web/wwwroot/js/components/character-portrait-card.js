@@ -7,7 +7,7 @@
         const characterId = this.getAttribute('character-id');
         const portraitUrl = this.getAttribute('portrait-url') || '';
         const characterName = this.getAttribute('name') || 'Unknown';
-        const characterClass = this.getAttribute('class') || '';
+        const characterClass = this.getAttribute('character-class') || '';
         const level = this.getAttribute('level') || '1';
 
         this.render(portraitUrl, characterName, characterClass, level);

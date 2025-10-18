@@ -71,6 +71,7 @@
                         <li class="nav-item">
                             <a class="nav-link ${activePage === 'archives' ? 'active' : ''}" href="/archives.html">Archives</a>
                         </li>
+                        -->
                         ${isAdmin ? `
                         <li class="nav-item">
                             <a class="nav-link ${activePage === 'admin' ? 'active' : ''}" href="/admin.html">Admin</a>

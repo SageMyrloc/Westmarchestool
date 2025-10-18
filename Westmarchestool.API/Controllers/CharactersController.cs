@@ -5,6 +5,7 @@ using Westmarchestool.API.DTOs;
 using Westmarchestool.API.Models;
 using Westmarchestool.API.Services;
 using Westmarchestool.API.Data;
+using System.Drawing;
 
 namespace Westmarchestool.API.Controllers
 {
@@ -181,6 +182,68 @@ namespace Westmarchestool.API.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null) return null;
             return int.Parse(userIdClaim.Value);
+        }
+
+        [HttpPost("upload-portrait")]
+        public async Task<IActionResult> UploadPortrait(IFormFile file)
+        {
+            // Validate file exists
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "No file provided" });
+            }
+
+            // Validate file size (2MB = 2,097,152 bytes)
+            const long maxFileSize = 2 * 1024 * 1024;
+            if (file.Length > maxFileSize)
+            {
+                return BadRequest(new { message = "File size exceeds 2MB limit" });
+            }
+
+            // Validate file type
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest(new { message = "Invalid file type. Allowed: jpg, jpeg, png, webp" });
+            }
+
+            // Validate image dimensions
+            try
+            {
+                using (var image = Image.FromStream(file.OpenReadStream(), false, false))
+                {
+                    const int maxDimension = 1024;
+                    if (image.Width > maxDimension || image.Height > maxDimension)
+                    {
+                        return BadRequest(new { message = $"Image dimensions exceed {maxDimension}x{maxDimension} pixels. Current: {image.Width}x{image.Height}" });
+                    }
+                }
+            }
+            catch
+            {
+                return BadRequest(new { message = "Invalid image file" });
+            }
+
+            // Generate unique filename
+            var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "portraits");
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            // Ensure directory exists
+            Directory.CreateDirectory(uploadsFolder);
+
+            // Save file
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // Return the relative path to store in database
+            var relativePath = $"/uploads/portraits/{uniqueFileName}";
+
+            return Ok(new { portraitUrl = relativePath });
         }
     }
 

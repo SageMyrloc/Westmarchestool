@@ -48,7 +48,7 @@
                 <div class="card bg-black border-secondary">
                     <div class="card-body">
                         <h3 class="text-warning mb-3">Inventory</h3>
-                        <p class="text-muted">Inventory system coming soon...</p>
+                        <p class="text-light">Inventory system coming soon...</p>
                     </div>
                 </div>
             </div>
@@ -105,30 +105,32 @@
 
             // Display portrait
             const portraitDiv = document.getElementById('characterPortrait');
+            const portraitUrl = `${API_BASE_URL}/api/Characters/${character.id}/portrait`;
+
             portraitDiv.innerHTML = `
-                <character-portrait-card
-                    name="${character.name}"
-                    class="${character.class}"
-                    level="${character.level}"
-                    portrait-url="${character.portraitUrl || ''}">
-                </character-portrait-card>
-            `;
+            <character-portrait-card
+                name="${character.name}"
+                character-class="${character.class}"
+                level="${character.level}"
+                portrait-url="${portraitUrl}">
+            </character-portrait-card>
+`;
 
             // Display details
             const detailsDiv = document.getElementById('characterDetails');
             detailsDiv.innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong class="text-warning">Class:</strong> ${character.class}</p>
-                        <p><strong class="text-warning">Level:</strong> ${character.level}</p>
-                        <p><strong class="text-warning">Ancestry:</strong> ${character.ancestry}</p>
-                        <p><strong class="text-warning">Background:</strong> ${character.background}</p>
+                        <p class="text-light"><strong class="text-warning">Class:</strong> ${character.class}</p>
+                        <p class="text-light"><strong class="text-warning">Level:</strong> ${character.level}</p>
+                        <p class="text-light"><strong class="text-warning">Ancestry:</strong> ${character.ancestry}</p>
+                        <p class="text-light"><strong class="text-warning">Background:</strong> ${character.background}</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong class="text-warning">Experience:</strong> ${character.experience} XP</p>
-                        <p><strong class="text-warning">Status:</strong> ${character.status}</p>
-                        <p><strong class="text-warning">Money:</strong></p>
-                        <ul>
+                        <p class="text-light"><strong class="text-warning">Experience:</strong> ${character.experience} XP</p>
+                        <p class="text-light"><strong class="text-warning">Status:</strong> ${character.status}</p>
+                        <p class="text-light"><strong class="text-warning">Money:</strong></p>
+                        <ul class="text-light">
                             <li>Platinum: ${character.money.pp}</li>
                             <li>Gold: ${character.money.gp}</li>
                             <li>Silver: ${character.money.sp}</li>

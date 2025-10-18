@@ -28,13 +28,13 @@
                                     <small class="text-muted">Export your character from Pathbuilder 2e and paste the JSON here</small>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="portraitUrl" class="form-label">Portrait Path (Optional)</label>
-                                    <input 
-                                        type="text" 
-                                        class="form-control bg-dark text-light border-secondary" 
-                                        id="portraitUrl" 
-                                        placeholder="/uploads/portraits/character-name.png">
-                                    <small class="text-muted">For now, manually place image in server and enter path. Upload feature coming later.</small>
+                                    <label for="portraitFile" class="form-label">Character Portrait (Optional)</label>
+                                    <input
+                                        type="file"
+                                        class="form-control bg-dark text-light border-secondary"
+                                        id="portraitFile"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp">
+                                    <small class="text-muted">Max 2MB, max 1024x1024 pixels. Formats: JPG, PNG, WEBP</small>
                                 </div>
                                 <div id="importError" class="alert alert-danger d-none"></div>
                                 <div id="importSuccess" class="alert alert-success d-none"></div>
@@ -57,7 +57,7 @@
 
     async handleImport() {
         const jsonTextarea = this.querySelector('#pathbuilderJson');
-        const portraitInput = this.querySelector('#portraitUrl');
+        const portraitFileInput = this.querySelector('#portraitFile');
         const errorDiv = this.querySelector('#importError');
         const successDiv = this.querySelector('#importSuccess');
 
@@ -83,13 +83,44 @@
             return;
         }
 
+        let portraitUrl = null;
+
+        // Upload portrait if provided
+        if (portraitFileInput.files && portraitFileInput.files[0]) {
+            try {
+                const formData = new FormData();
+                formData.append('file', portraitFileInput.files[0]);
+
+                const uploadResponse = await fetch(`${API_BASE_URL}/api/Characters/upload-portrait`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    const error = await uploadResponse.json();
+                    throw new Error(error.message || 'Failed to upload portrait');
+                }
+
+                const uploadResult = await uploadResponse.json();
+                portraitUrl = uploadResult.portraitUrl;
+
+            } catch (error) {
+                errorDiv.textContent = `Portrait upload failed: ${error.message}`;
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+        }
+
         // Prepare request body
         const requestBody = {
             pathbuilderJson: pathbuilderJson,
-            portraitUrl: portraitInput.value.trim() || null
+            portraitUrl: portraitUrl
         };
 
-        // Make API call
+        // Make API call to import character
         try {
             const response = await fetch(`${API_BASE_URL}/api/Characters/import`, {
                 method: 'POST',
@@ -113,7 +144,7 @@
 
             // Clear form
             jsonTextarea.value = '';
-            portraitInput.value = '';
+            portraitFileInput.value = '';
 
             // Close modal after 2 seconds and reload page
             setTimeout(() => {

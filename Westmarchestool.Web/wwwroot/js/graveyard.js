@@ -1,5 +1,5 @@
-﻿// Fetch all public characters and filter for Retired (status = 2)
-async function loadSettlementCharacters() {
+﻿// Fetch all public characters and filter for Dead (status = 3)
+async function loadGraveyardCharacters() {
     try {
         const response = await fetch(`${API_BASE_URL}/api/Characters/public`);
 
@@ -9,10 +9,10 @@ async function loadSettlementCharacters() {
 
         const characters = await response.json();
 
-        // Filter for Retired characters (status = 2)
-        const retiredCharacters = characters.filter(char => char.status === 2);
+        // Filter for Dead characters (status = 3)
+        const deadCharacters = characters.filter(char => char.status === 3);
 
-        displayCharacters(retiredCharacters);
+        displayCharacters(deadCharacters);
 
     } catch (error) {
         console.error('Error loading characters:', error);
@@ -25,7 +25,7 @@ function displayCharacters(characters) {
     const grid = document.getElementById('character-grid');
 
     if (characters.length === 0) {
-        grid.innerHTML = '<p class="text-muted">No characters currently in the settlement.</p>';
+        grid.innerHTML = '<p class="text-muted">No characters in the graveyard... yet.</p>';
         return;
     }
 
@@ -36,11 +36,11 @@ function displayCharacters(characters) {
                 level="${char.level}"
                 character-class="${char.class}"
                 portrait-url="${API_BASE_URL}/api/Characters/${char.id}/portrait"
-                status-badge="Retired"
+                status-badge="Deceased"
             ></character-portrait-card>
         </div>
     `).join('');
 }
 
 // Load characters when page loads
-loadSettlementCharacters();
+loadGraveyardCharacters();

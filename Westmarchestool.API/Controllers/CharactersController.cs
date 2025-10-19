@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Westmarchestool.API.DTOs;
@@ -245,8 +246,29 @@ namespace Westmarchestool.API.Controllers
 
             return Ok(new { portraitUrl = relativePath });
         }
-    }
+        
 
+        [HttpGet("public")]
+        [AllowAnonymous]  // Anyone can view these
+        public async Task<ActionResult<IEnumerable<object>>> GetPublicCharacters()
+        {
+            var characters = await _context.Characters
+                .Where(c => c.Status == CharacterStatus.Active ||
+                            c.Status == CharacterStatus.Township ||
+                            c.Status == CharacterStatus.Graveyard)
+                .Select(c => new {
+                    c.Id,
+                    c.Name,
+                    c.Class,
+                    c.Level,
+                    c.Status,
+                    PortraitUrl = $"/api/Characters/{c.Id}/portrait"
+                })
+                .ToListAsync();
+
+            return Ok(characters);
+        }
+    }
     public class UpdateStatusDto
     {
         public CharacterStatus Status { get; set; }

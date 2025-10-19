@@ -58,6 +58,15 @@
                         <li class="nav-item">
                             <a class="nav-link ${activePage === 'characters' ? 'active' : ''}" href="/characters.html">Characters</a>
                         </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle ${activePage === 'settlement' || activePage === 'graveyard' ? 'active' : ''}" href="#" role="button">
+                            Community
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="settlement.html">Settlement</a></li>
+                                <li><a class="dropdown-item" href="graveyard.html">Graveyard</a></li>
+                            </ul>
+                        </li>
                         <!-- Coming soon:
                         <li class="nav-item">
                             <a class="nav-link ${activePage === 'sessions' ? 'active' : ''}" href="/sessions.html">Sessions</a>

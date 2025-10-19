@@ -95,3 +95,29 @@ input:focus {
     margin-left: 15%;
 }
 
+/* Dropdown hover functionality */
+.navbar .dropdown:hover .dropdown-menu {
+    display: block;
+    margin-top: 0;
+}
+
+.navbar .dropdown-menu {
+    background-color: #1b1b1b;
+    border: 1px solid #d2b76d;
+    margin-top: 0;
+    transition: all 0.2s ease;
+}
+
+.navbar .dropdown-item {
+    color: #cfc4a6;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+    .navbar .dropdown-item:hover {
+        background-color: #2a2a2a;
+        color: #f1d08a;
+    }
+
+.navbar .dropdown-toggle::after {
+    border-top-color: #cfc4a6;
+}

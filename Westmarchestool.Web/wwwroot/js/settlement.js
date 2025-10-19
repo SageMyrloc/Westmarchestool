@@ -39,10 +39,15 @@ function displayCharacters(characters) {
         return;
     }
 
-    // Display characters - we'll add the actual display code next
-    grid.innerHTML = characters.map(char => `
-        <div class="col-md-3 mb-4">
-            <p>${char.name}</p>
+    grid.innerHTML = characters.map((char, index) => `
+        <div class="${index === 0 ? 'col-md-2 offset-md-2' : 'col-md-2'} mb-4">
+            <character-portrait-card
+                name="${char.name}"
+                level="${char.level}"
+                character-class="${char.class}"
+                portrait-url="${API_BASE_URL}/api/Characters/${char.id}/portrait"
+                status-badge="Retired"
+            ></character-portrait-card>
         </div>
     `).join('');
 }

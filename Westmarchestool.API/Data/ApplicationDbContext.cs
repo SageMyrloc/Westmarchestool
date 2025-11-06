@@ -19,12 +19,16 @@ namespace Westmarchestool.API.Data
         public DbSet<Session> Sessions { get; set; }
         public DbSet<SessionAttendee> SessionAttendees { get; set; }
         public DbSet<CharacterHistoryEntry> CharacterHistory { get; set; }
+        public DbSet<HexTile> HexTiles { get; set; }
+        public DbSet<Expedition> Expeditions { get; set; }
+        public DbSet<ExpeditionHex> ExpeditionHexes { get; set; }
+        public DbSet<ExpeditionMember> ExpeditionMembers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure many-to-many relationship
+            // Configure many-to-many relationship for UserRole
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
 
@@ -71,6 +75,11 @@ namespace Westmarchestool.API.Data
                 .HasForeignKey(sa => sa.CharacterId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Username must be unique
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
             // Seed initial roles
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "Admin", Description = "Full system access" },
@@ -78,10 +87,58 @@ namespace Westmarchestool.API.Data
                 new Role { Id = 3, Name = "Player", Description = "Player access" }
             );
 
-            // Username must be unique
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Username)
-                .IsUnique();
+            // Configure HexTile composite primary key
+            modelBuilder.Entity<HexTile>()
+                .HasKey(h => new { h.Q, h.R });
+
+            // Configure HexTile indexes
+            modelBuilder.Entity<HexTile>()
+                .HasIndex(h => h.TerrainType);
+
+            modelBuilder.Entity<HexTile>()
+                .HasIndex(h => h.IsExploredByGM);
+
+            modelBuilder.Entity<HexTile>()
+                .HasIndex(h => h.IsOnTownMap);
+
+            // Configure Expedition relationships
+            modelBuilder.Entity<Expedition>()
+                .HasOne(e => e.LeaderPlayer)
+                .WithMany()
+                .HasForeignKey(e => e.LeaderPlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Expedition>()
+                .HasIndex(e => e.Status);
+
+            // Configure ExpeditionHex relationships
+            modelBuilder.Entity<ExpeditionHex>()
+                .HasOne(eh => eh.Expedition)
+                .WithMany(e => e.ExploredHexes)
+                .HasForeignKey(eh => eh.ExpeditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ExpeditionHex>()
+                .HasIndex(eh => new { eh.ExpeditionId, eh.Q, eh.R });
+
+            // Configure ExpeditionMember relationships
+            modelBuilder.Entity<ExpeditionMember>()
+                .HasOne(em => em.Expedition)
+                .WithMany(e => e.Members)
+                .HasForeignKey(em => em.ExpeditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ExpeditionMember>()
+                .HasOne(em => em.Character)
+                .WithMany()
+                .HasForeignKey(em => em.CharacterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ExpeditionMember>()
+                .HasOne(em => em.Player)
+                .WithMany()
+                .HasForeignKey(em => em.PlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

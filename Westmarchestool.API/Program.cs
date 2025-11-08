@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Westmarchestool.API.Services;
+using Westmarchestool.HexMap.Services;
+using Westmarchestool.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add CORS
@@ -22,6 +24,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlSer
 // Add Authentication Service
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICharacterService, CharacterService>();
+builder.Services.AddScoped<IHexMapService, HexMapService>();
+builder.Services.AddScoped<IExpeditionService, ExpeditionService>();
+
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -46,7 +51,11 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

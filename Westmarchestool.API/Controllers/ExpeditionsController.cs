@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using Westmarchestool.Infrastructure.Data;
-using Westmarchestool.HexMap.Entities;
 using Westmarchestool.HexMap.Coordinates;
+using Westmarchestool.HexMap.Entities;
+using Westmarchestool.HexMap.Services;
 
 namespace Westmarchestool.API.Controllers
 {
@@ -13,41 +11,20 @@ namespace Westmarchestool.API.Controllers
     [Authorize]
     public class ExpeditionsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IExpeditionService _expeditionService;
 
-        public ExpeditionsController(ApplicationDbContext context)
+        public ExpeditionsController(IExpeditionService expeditionService)
         {
-            _context = context;
+            _expeditionService = expeditionService;
         }
 
         /// <summary>
-        /// Get all expeditions
-        /// </summary>
-        [HttpGet]
-        [Authorize(Roles = "Admin,GM")]
-        public async Task<ActionResult<List<Expedition>>> GetAllExpeditions()
-        {
-            var expeditions = await _context.Expeditions
-                .Include(e => e.LeaderPlayer)
-                .Include(e => e.Members)
-                .OrderByDescending(e => e.DepartureTime)
-                .ToListAsync();
-
-            return Ok(expeditions);
-        }
-
-        /// <summary>
-        /// Get active expeditions only
+        /// Get active expeditions
         /// </summary>
         [HttpGet("active")]
         public async Task<ActionResult<List<Expedition>>> GetActiveExpeditions()
         {
-            var expeditions = await _context.Expeditions
-                .Include(e => e.LeaderPlayer)
-                .Include(e => e.Members)
-                .Where(e => e.Status == "Active")
-                .ToListAsync();
-
+            var expeditions = await _expeditionService.GetActiveExpeditionsAsync();
             return Ok(expeditions);
         }
 
@@ -57,11 +34,7 @@ namespace Westmarchestool.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Expedition>> GetExpedition(int id)
         {
-            var expedition = await _context.Expeditions
-                .Include(e => e.LeaderPlayer)
-                .Include(e => e.Members)
-                .Include(e => e.ExploredHexes)
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var expedition = await _expeditionService.GetExpeditionAsync(id);
 
             if (expedition == null)
             {
@@ -78,22 +51,21 @@ namespace Westmarchestool.API.Controllers
         [Authorize(Roles = "Admin,GM")]
         public async Task<ActionResult<Expedition>> CreateExpedition([FromBody] CreateExpeditionDto dto)
         {
-            var expedition = new Expedition
+            try
             {
-                GroupName = dto.GroupName,
-                LeaderPlayerId = dto.LeaderPlayerId,
-                DepartureTime = DateTime.UtcNow,
-                StartQ = dto.StartQ,
-                StartR = dto.StartR,
-                LastKnownQ = dto.StartQ,
-                LastKnownR = dto.StartR,
-                Status = "Active"
-            };
+                var startPosition = new AxialHex(dto.StartQ, dto.StartR);
+                var expedition = await _expeditionService.CreateExpeditionAsync(
+                    dto.GroupName,
+                    dto.LeaderPlayerId,
+                    startPosition
+                );
 
-            _context.Expeditions.Add(expedition);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetExpedition), new { id = expedition.Id }, expedition);
+                return CreatedAtAction(nameof(GetExpedition), new { id = expedition.Id }, expedition);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -103,32 +75,15 @@ namespace Westmarchestool.API.Controllers
         [Authorize(Roles = "Admin,GM")]
         public async Task<ActionResult> AddMember(int id, [FromBody] AddMemberDto dto)
         {
-            var expedition = await _context.Expeditions.FindAsync(id);
-            if (expedition == null)
+            try
             {
-                return NotFound(new { message = "Expedition not found" });
+                await _expeditionService.AddMemberAsync(id, dto.CharacterId, dto.PlayerId);
+                return Ok(new { message = "Member added successfully" });
             }
-
-            // Check if character already in expedition
-            var existing = await _context.ExpeditionMembers
-                .FirstOrDefaultAsync(em => em.ExpeditionId == id && em.CharacterId == dto.CharacterId);
-
-            if (existing != null)
+            catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = "Character already in expedition" });
+                return BadRequest(new { message = ex.Message });
             }
-
-            var member = new ExpeditionMember
-            {
-                ExpeditionId = id,
-                CharacterId = dto.CharacterId,
-                PlayerId = dto.PlayerId
-            };
-
-            _context.ExpeditionMembers.Add(member);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Member added successfully" });
         }
 
         /// <summary>
@@ -136,61 +91,48 @@ namespace Westmarchestool.API.Controllers
         /// </summary>
         [HttpPost("{id}/explore")]
         [Authorize(Roles = "Admin,GM")]
-        public async Task<ActionResult> RecordExploration(int id, [FromBody] RecordExplorationDto dto)
+        public async Task<ActionResult<ExpeditionHex>> RecordExploration(int id, [FromBody] RecordExplorationDto dto)
         {
-            var expedition = await _context.Expeditions.FindAsync(id);
-            if (expedition == null)
+            try
             {
-                return NotFound(new { message = "Expedition not found" });
+                var believedPosition = new AxialHex(dto.BelievedQ, dto.BelievedR);
+                var actualPosition = new AxialHex(dto.ActualQ, dto.ActualR);
+
+                var exploredHex = await _expeditionService.RecordExplorationAsync(
+                    id,
+                    believedPosition,
+                    actualPosition,
+                    dto.TerrainType
+                );
+
+                return Ok(exploredHex);
             }
-
-            var exploredHex = new ExpeditionHex
+            catch (InvalidOperationException ex)
             {
-                ExpeditionId = id,
-                Q = dto.BelievedQ,
-                R = dto.BelievedR,
-                ActualQ = dto.ActualQ,
-                ActualR = dto.ActualR,
-                TerrainType = dto.TerrainType,
-                IsAccurate = (dto.BelievedQ == dto.ActualQ && dto.BelievedR == dto.ActualR)
-            };
-
-            _context.ExpeditionHexes.Add(exploredHex);
-
-            // Update expedition's last known position
-            expedition.LastKnownQ = dto.ActualQ;
-            expedition.LastKnownR = dto.ActualR;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(exploredHex);
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
-        /// Complete an expedition (return to town)
+        /// Complete an expedition (marks as returned, does NOT auto-sync)
         /// </summary>
         [HttpPost("{id}/complete")]
         [Authorize(Roles = "Admin,GM")]
-        public async Task<ActionResult> CompleteExpedition(int id)
+        public async Task<ActionResult<Expedition>> CompleteExpedition(int id)
         {
-            var expedition = await _context.Expeditions
-                .Include(e => e.ExploredHexes)
-                .FirstOrDefaultAsync(e => e.Id == id);
-
-            if (expedition == null)
+            try
             {
-                return NotFound(new { message = "Expedition not found" });
+                var expedition = await _expeditionService.CompleteExpeditionAsync(id);
+                return Ok(new
+                {
+                    expedition = expedition,
+                    message = "Expedition marked as returned. Use /submit endpoint to submit map to town."
+                });
             }
-
-            expedition.ReturnTime = DateTime.UtcNow;
-            expedition.Status = "Returned";
-
-            // TODO: Implement synchronization to Town Map
-            // For now, just mark expedition as complete
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Expedition completed successfully" });
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -199,16 +141,174 @@ namespace Westmarchestool.API.Controllers
         [HttpGet("{id}/map")]
         public async Task<ActionResult<List<ExpeditionHex>>> GetExpeditionMap(int id)
         {
-            var hexes = await _context.ExpeditionHexes
-                .Where(eh => eh.ExpeditionId == id)
-                .OrderBy(eh => eh.ExploredTime)
-                .ToListAsync();
-
+            var hexes = await _expeditionService.GetExpeditionMapAsync(id);
             return Ok(hexes);
+        }
+
+        /// <summary>
+        /// Check if expedition is lost
+        /// </summary>
+        [HttpGet("{id}/is-lost")]
+        [Authorize(Roles = "Admin,GM")]
+        public async Task<ActionResult<bool>> IsExpeditionLost(int id)
+        {
+            var isLost = await _expeditionService.IsExpeditionLostAsync(id);
+            return Ok(new { expeditionId = id, isLost = isLost });
+        }
+
+        /// <summary>
+        /// Submit expedition map to town (PLAYER-DRIVEN!)
+        /// </summary>
+        [HttpPost("{id}/submit")]
+        [Authorize]
+        public async Task<ActionResult<TownMapSubmission>> SubmitToTown(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim == null) return Unauthorized();
+
+                int playerId = int.Parse(userIdClaim.Value);
+
+                var submission = await _expeditionService.SubmitExpeditionToTownAsync(id, playerId);
+
+                return Ok(new
+                {
+                    submission = submission,
+                    message = submission.HexesConflicted > 0
+                        ? $"Submitted with {submission.HexesConflicted} conflict(s) requiring resolution"
+                        : "All hexes accepted!"
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get all pending submissions
+        /// </summary>
+        [HttpGet("submissions/pending")]
+        [Authorize(Roles = "Admin,GM")]
+        public async Task<ActionResult<List<TownMapSubmission>>> GetPendingSubmissions()
+        {
+            var submissions = await _expeditionService.GetPendingSubmissionsAsync();
+            return Ok(submissions);
+        }
+
+        /// <summary>
+        /// Get a specific submission
+        /// </summary>
+        [HttpGet("submissions/{id}")]
+        [Authorize]
+        public async Task<ActionResult<TownMapSubmission>> GetSubmission(int id)
+        {
+            var submission = await _expeditionService.GetSubmissionAsync(id);
+            if (submission == null)
+            {
+                return NotFound(new { message = "Submission not found" });
+            }
+            return Ok(submission);
+        }
+
+        /// <summary>
+        /// Get all unresolved conflicts
+        /// </summary>
+        [HttpGet("conflicts")]
+        [Authorize]
+        public async Task<ActionResult<List<MapConflict>>> GetConflicts()
+        {
+            var conflicts = await _expeditionService.GetUnresolvedConflictsAsync();
+            return Ok(conflicts);
+        }
+
+        /// <summary>
+        /// Get a specific conflict
+        /// </summary>
+        [HttpGet("conflicts/{id}")]
+        [Authorize]
+        public async Task<ActionResult<MapConflict>> GetConflict(int id)
+        {
+            var conflict = await _expeditionService.GetConflictAsync(id);
+            if (conflict == null)
+            {
+                return NotFound(new { message = "Conflict not found" });
+            }
+            return Ok(conflict);
+        }
+
+        /// <summary>
+        /// Vote on a conflict
+        /// </summary>
+        [HttpPost("conflicts/{id}/vote")]
+        [Authorize]
+        public async Task<ActionResult> VoteOnConflict(int id, [FromBody] VoteDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim == null) return Unauthorized();
+
+                int playerId = int.Parse(userIdClaim.Value);
+
+                await _expeditionService.VoteOnConflictAsync(id, playerId, dto.VoteForNew, dto.Comment);
+
+                var tally = await _expeditionService.GetConflictVoteTallyAsync(id);
+
+                return Ok(new
+                {
+                    message = "Vote recorded",
+                    tally = new
+                    {
+                        votesForNew = tally[true],
+                        votesForExisting = tally[false]
+                    }
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Resolve a conflict (GM/Admin only)
+        /// </summary>
+        [HttpPost("conflicts/{id}/resolve")]
+        [Authorize(Roles = "Admin,GM")]
+        public async Task<ActionResult> ResolveConflict(int id, [FromBody] ResolveConflictDto dto)
+        {
+            try
+            {
+                await _expeditionService.ResolveConflictAsync(id, dto.Resolution, dto.Notes);
+                return Ok(new { message = "Conflict resolved" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get vote tally for a conflict
+        /// </summary>
+        [HttpGet("conflicts/{id}/votes")]
+        [Authorize]
+        public async Task<ActionResult> GetVoteTally(int id)
+        {
+            var tally = await _expeditionService.GetConflictVoteTallyAsync(id);
+            return Ok(new
+            {
+                conflictId = id,
+                votesForNew = tally[true],
+                votesForExisting = tally[false],
+                total = tally[true] + tally[false]
+            });
         }
     }
 
-    // DTOs for expedition operations
+    // DTOs
     public class CreateExpeditionDto
     {
         public string GroupName { get; set; } = string.Empty;
@@ -230,5 +330,17 @@ namespace Westmarchestool.API.Controllers
         public int ActualQ { get; set; }
         public int ActualR { get; set; }
         public string TerrainType { get; set; } = string.Empty;
+    }
+
+    public class VoteDto
+    {
+        public bool VoteForNew { get; set; }
+        public string? Comment { get; set; }
+    }
+
+    public class ResolveConflictDto
+    {
+        public string Resolution { get; set; } = string.Empty;
+        public string? Notes { get; set; }
     }
 }

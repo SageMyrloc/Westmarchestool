@@ -1,22 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Westmarchestool.Infrastructure.Data;
 using Westmarchestool.HexMap.Entities;
 using Westmarchestool.HexMap.Coordinates;
+using Westmarchestool.HexMap.Services;
 
 namespace Westmarchestool.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,GM")]  // Only GMs and Admins can access
+    [Authorize(Roles = "Admin,GM")]
     public class HexMapController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IHexMapService _hexMapService;
 
-        public HexMapController(ApplicationDbContext context)
+        public HexMapController(IHexMapService hexMapService)
         {
-            _context = context;
+            _hexMapService = hexMapService;
         }
 
         /// <summary>
@@ -25,7 +24,7 @@ namespace Westmarchestool.API.Controllers
         [HttpGet("{q}/{r}")]
         public async Task<ActionResult<HexTile>> GetHex(int q, int r)
         {
-            var hex = await _context.HexTiles.FindAsync(q, r);
+            var hex = await _hexMapService.GetHexAsync(q, r);
 
             if (hex == null)
             {
@@ -41,10 +40,7 @@ namespace Westmarchestool.API.Controllers
         [HttpGet("gm-map")]
         public async Task<ActionResult<List<HexTile>>> GetGMMap()
         {
-            var hexes = await _context.HexTiles
-                .Where(h => h.IsExploredByGM)
-                .ToListAsync();
-
+            var hexes = await _hexMapService.GetGMMapAsync();
             return Ok(hexes);
         }
 
@@ -52,13 +48,10 @@ namespace Westmarchestool.API.Controllers
         /// Get all hexes on the Town Map (public)
         /// </summary>
         [HttpGet("town-map")]
-        [AllowAnonymous]  // Players can see this
+        [AllowAnonymous]
         public async Task<ActionResult<List<HexTile>>> GetTownMap()
         {
-            var hexes = await _context.HexTiles
-                .Where(h => h.IsOnTownMap)
-                .ToListAsync();
-
+            var hexes = await _hexMapService.GetTownMapAsync();
             return Ok(hexes);
         }
 
@@ -68,27 +61,26 @@ namespace Westmarchestool.API.Controllers
         [HttpPost]
         public async Task<ActionResult<HexTile>> CreateHex([FromBody] CreateHexDto dto)
         {
-            // Check if hex already exists
-            var existing = await _context.HexTiles.FindAsync(dto.Q, dto.R);
-            if (existing != null)
+            try
             {
-                return BadRequest(new { message = $"Hex at ({dto.Q}, {dto.R}) already exists" });
+                var position = new AxialHex(dto.Q, dto.R);
+                var hex = await _hexMapService.CreateHexAsync(position, dto.TerrainType);
+
+                // Apply optional settings
+                if (dto.IsPublic)
+                {
+                    await _hexMapService.MarkHexAsPublicAsync(hex.Q, hex.R);
+                }
+
+                // Refresh to get updated hex
+                hex = await _hexMapService.GetHexAsync(hex.Q, hex.R);
+
+                return CreatedAtAction(nameof(GetHex), new { q = hex!.Q, r = hex.R }, hex);
             }
-
-            var hex = new HexTile
+            catch (InvalidOperationException ex)
             {
-                Q = dto.Q,
-                R = dto.R,
-                TerrainType = dto.TerrainType,
-                IsExploredByGM = true,
-                IsOnTownMap = dto.IsPublic,
-                GMNotes = dto.GMNotes
-            };
-
-            _context.HexTiles.Add(hex);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetHex), new { q = hex.Q, r = hex.R }, hex);
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -97,27 +89,21 @@ namespace Westmarchestool.API.Controllers
         [HttpPut("{q}/{r}")]
         public async Task<ActionResult<HexTile>> UpdateHex(int q, int r, [FromBody] UpdateHexDto dto)
         {
-            var hex = await _context.HexTiles.FindAsync(q, r);
-
-            if (hex == null)
+            try
             {
-                return NotFound(new { message = $"Hex at ({q}, {r}) not found" });
+                var hex = await _hexMapService.UpdateHexAsync(q, r, dto.TerrainType);
+
+                if (dto.IsPublic.HasValue && dto.IsPublic.Value)
+                {
+                    await _hexMapService.MarkHexAsPublicAsync(q, r);
+                }
+
+                return Ok(hex);
             }
-
-            if (!string.IsNullOrEmpty(dto.TerrainType))
-                hex.TerrainType = dto.TerrainType;
-
-            if (dto.IsPublic.HasValue)
-                hex.IsOnTownMap = dto.IsPublic.Value;
-
-            if (dto.GMNotes != null)
-                hex.GMNotes = dto.GMNotes;
-
-            hex.LastUpdatedDate = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(hex);
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         /// <summary>
@@ -127,20 +113,8 @@ namespace Westmarchestool.API.Controllers
         public async Task<ActionResult<List<HexTile>>> GetNeighbors(int q, int r)
         {
             var axial = new AxialHex(q, r);
-            var neighbors = axial.GetAllNeighbors();
-
-            var hexNeighbors = new List<HexTile>();
-
-            foreach (var neighbor in neighbors)
-            {
-                var hex = await _context.HexTiles.FindAsync(neighbor.Q, neighbor.R);
-                if (hex != null)
-                {
-                    hexNeighbors.Add(hex);
-                }
-            }
-
-            return Ok(hexNeighbors);
+            var neighbors = await _hexMapService.GetNeighborsAsync(axial);
+            return Ok(neighbors);
         }
 
         /// <summary>
@@ -163,27 +137,26 @@ namespace Westmarchestool.API.Controllers
         }
 
         /// <summary>
-        /// Delete a hex (GM only)
+        /// Generate border hexes around a position
         /// </summary>
-        [HttpDelete("{q}/{r}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult> DeleteHex(int q, int r)
+        [HttpPost("generate-border")]
+        public async Task<ActionResult> GenerateBorder([FromBody] GenerateBorderDto dto)
         {
-            var hex = await _context.HexTiles.FindAsync(q, r);
-
-            if (hex == null)
+            try
             {
-                return NotFound(new { message = $"Hex at ({q}, {r}) not found" });
+                var center = new AxialHex(dto.CenterQ, dto.CenterR);
+                await _hexMapService.GenerateBorderHexesAsync(center, dto.BorderDistance);
+
+                return Ok(new { message = $"Generated hexes within {dto.BorderDistance} of ({dto.CenterQ}, {dto.CenterR})" });
             }
-
-            _context.HexTiles.Remove(hex);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Hex deleted successfully" });
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 
-    // DTOs for hex operations
+    // DTOs
     public class CreateHexDto
     {
         public int Q { get; set; }
@@ -198,5 +171,12 @@ namespace Westmarchestool.API.Controllers
         public string? TerrainType { get; set; }
         public bool? IsPublic { get; set; }
         public string? GMNotes { get; set; }
+    }
+
+    public class GenerateBorderDto
+    {
+        public int CenterQ { get; set; }
+        public int CenterR { get; set; }
+        public int BorderDistance { get; set; } = 2;
     }
 }

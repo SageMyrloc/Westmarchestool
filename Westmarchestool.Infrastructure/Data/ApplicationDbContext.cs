@@ -24,6 +24,9 @@ namespace Westmarchestool.Infrastructure.Data
         public DbSet<Expedition> Expeditions { get; set; }
         public DbSet<ExpeditionHex> ExpeditionHexes { get; set; }
         public DbSet<ExpeditionMember> ExpeditionMembers { get; set; }
+        public DbSet<TownMapSubmission> TownMapSubmissions { get; set; }
+        public DbSet<MapConflict> MapConflicts { get; set; }
+        public DbSet<ConflictVote> ConflictVotes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -128,6 +131,65 @@ namespace Westmarchestool.Infrastructure.Data
                 .WithMany()
                 .HasForeignKey(em => em.PlayerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure TownMapSubmission relationships
+            modelBuilder.Entity<TownMapSubmission>()
+                .HasOne(s => s.Expedition)
+                .WithMany()
+                .HasForeignKey(s => s.ExpeditionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TownMapSubmission>()
+                .HasOne(s => s.SubmittedByPlayer)
+                .WithMany()
+                .HasForeignKey(s => s.SubmittedByPlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TownMapSubmission>()
+                .HasIndex(s => s.Status);
+
+            // Configure MapConflict relationships
+            modelBuilder.Entity<MapConflict>()
+                .HasOne(c => c.Submission)
+                .WithMany()
+                .HasForeignKey(c => c.SubmissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MapConflict>()
+                .HasOne(c => c.NewSubmitter)
+                .WithMany()
+                .HasForeignKey(c => c.NewSubmitterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MapConflict>()
+                .HasOne(c => c.ExistingSubmitter)
+                .WithMany()
+                .HasForeignKey(c => c.ExistingSubmitterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MapConflict>()
+                .HasIndex(c => new { c.Q, c.R });
+
+            modelBuilder.Entity<MapConflict>()
+                .HasIndex(c => c.Status);
+
+            // Configure ConflictVote relationships
+            modelBuilder.Entity<ConflictVote>()
+                .HasOne(v => v.Conflict)
+                .WithMany(c => c.Votes)
+                .HasForeignKey(v => v.ConflictId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ConflictVote>()
+                .HasOne(v => v.Player)
+                .WithMany()
+                .HasForeignKey(v => v.PlayerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Prevent duplicate votes
+            modelBuilder.Entity<ConflictVote>()
+                .HasIndex(v => new { v.ConflictId, v.PlayerId })
+                .IsUnique();
 
             // Seed initial roles
             modelBuilder.Entity<Role>().HasData(

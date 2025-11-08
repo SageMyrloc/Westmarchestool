@@ -12,7 +12,7 @@ namespace Westmarchestool.HexMap.Services
         Task<Expedition> CreateExpeditionAsync(string groupName, int leaderPlayerId, AxialHex startPosition);
         Task<Expedition?> GetExpeditionAsync(int expeditionId);
         Task<List<Expedition>> GetActiveExpeditionsAsync();
-        Task<Expedition> CompleteExpeditionAsync(int expeditionId);
+        Task<Expedition> CompleteExpeditionAsync(int expeditionId); // Just marks complete, doesn't sync
 
         // Member management
         Task AddMemberAsync(int expeditionId, int characterId, int playerId);
@@ -26,7 +26,18 @@ namespace Westmarchestool.HexMap.Services
         Task<bool> IsExpeditionLostAsync(int expeditionId);
         Task CorrectExpeditionPositionAsync(int expeditionId, AxialHex actualPosition);
 
-        // Synchronization (town return)
-        Task SynchronizeToTownMapAsync(int expeditionId);
+        // PLAYER-DRIVEN SUBMISSION (NEW!)
+        Task<TownMapSubmission> SubmitExpeditionToTownAsync(int expeditionId, int submittingPlayerId);
+        Task<TownMapSubmission?> GetSubmissionAsync(int submissionId);
+        Task<List<TownMapSubmission>> GetPendingSubmissionsAsync();
+
+        // Conflict management
+        Task<List<MapConflict>> GetUnresolvedConflictsAsync();
+        Task<MapConflict?> GetConflictAsync(int conflictId);
+        Task ResolveConflictAsync(int conflictId, string resolution, string? notes);
+
+        // Voting
+        Task VoteOnConflictAsync(int conflictId, int playerId, bool voteForNew, string? comment);
+        Task<Dictionary<bool, int>> GetConflictVoteTallyAsync(int conflictId);
     }
 }

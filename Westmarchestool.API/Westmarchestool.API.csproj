@@ -26,4 +26,10 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Westmarchestool.Core\Westmarchestool.Core.csproj" />
+    <ProjectReference Include="..\Westmarchestool.HexMap\Westmarchestool.HexMap.csproj" />
+    <ProjectReference Include="..\Westmarchestool.Infrastructure\Westmarchestool.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

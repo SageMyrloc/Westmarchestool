@@ -1,5 +1,5 @@
 ﻿using Westmarchestool.API.DTOs;
-using Westmarchestool.API.Models;
+using Westmarchestool.Core.Entities;
 
 namespace Westmarchestool.API.Services
 {

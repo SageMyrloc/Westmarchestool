@@ -1,4 +1,4 @@
-﻿namespace Westmarchestool.API.Models
+﻿namespace Westmarchestool.Core.Entities
 {
     public class Role
     {

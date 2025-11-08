@@ -3,9 +3,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Westmarchestool.API.Data;
+using Westmarchestool.Infrastructure.Data;
 using Westmarchestool.API.DTOs;
-using Westmarchestool.API.Models;
+using Westmarchestool.Core.Entities;
 
 namespace Westmarchestool.API.Services
 {

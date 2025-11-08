@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Westmarchestool.API.Models;
+using Westmarchestool.Core.Entities;
 
-namespace Westmarchestool.API.Data
+namespace Westmarchestool.Infrastructure.Data
 {
     public class ApplicationDbContext : DbContext
     {

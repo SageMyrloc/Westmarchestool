@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Westmarchestool.API.Models
+namespace Westmarchestool.Core.Entities
 {
     public enum CharacterStatus
     {

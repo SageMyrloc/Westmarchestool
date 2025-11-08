@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Westmarchestool.API.DTOs;
-using Westmarchestool.API.Models;
+using Westmarchestool.Core.Entities;
 using Westmarchestool.API.Services;
-using Westmarchestool.API.Data;
+using Westmarchestool.Infrastructure.Data;
 using System.Drawing;
 
 namespace Westmarchestool.API.Controllers

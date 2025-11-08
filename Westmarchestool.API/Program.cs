@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Westmarchestool.API.Data;
+using Westmarchestool.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;

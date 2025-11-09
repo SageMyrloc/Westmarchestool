@@ -1,9 +1,13 @@
-﻿namespace Westmarchestool.Core.Entities
+﻿using System.Text.Json.Serialization;
+
+namespace Westmarchestool.Core.Entities
 {
     public class User
     {
         public int Id { get; set; }
         public string Username { get; set; } = string.Empty;
+        
+        [JsonIgnore] 
         public string PasswordHash { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         public bool IsLocked { get; set; } = false;

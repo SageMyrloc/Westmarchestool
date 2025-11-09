@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Westmarchestool.Core.Entities;
+using Westmarchestool.Core.Entities.HexMap;
 
 namespace Westmarchestool.Infrastructure.Data
 {
@@ -19,6 +20,14 @@ namespace Westmarchestool.Infrastructure.Data
         public DbSet<Session> Sessions { get; set; }
         public DbSet<SessionAttendee> SessionAttendees { get; set; }
         public DbSet<CharacterHistoryEntry> CharacterHistory { get; set; }
+        // HexMap DbSets
+        public DbSet<GMMapHex> GMMapHexes { get; set; }
+        public DbSet<TownMapHex> TownMapHexes { get; set; }
+        public DbSet<Expedition> Expeditions { get; set; }
+        public DbSet<ExpeditionMember> ExpeditionMembers { get; set; }
+        public DbSet<ExpeditionHex> ExpeditionHexes { get; set; }
+        public DbSet<HexDiscoveryHistory> HexDiscoveryHistory { get; set; }
+        public DbSet<PointOfInterest> PointsOfInterest { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -82,6 +91,81 @@ namespace Westmarchestool.Infrastructure.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
+
+            // ===== HexMap Configurations =====
+
+            // GMMapHex - Unique coordinate constraint
+            modelBuilder.Entity<GMMapHex>()
+                .HasIndex(h => new { h.Q, h.R })
+                .IsUnique();
+
+            // TownMapHex - Unique coordinate constraint
+            modelBuilder.Entity<TownMapHex>()
+                .HasIndex(h => new { h.Q, h.R })
+                .IsUnique();
+
+            // Expedition - Leader relationship
+            modelBuilder.Entity<Expedition>()
+                .HasOne(e => e.Leader)
+                .WithMany()
+                .HasForeignKey(e => e.LeaderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ExpeditionMember - Relationships
+            modelBuilder.Entity<ExpeditionMember>()
+                .HasOne(em => em.Expedition)
+                .WithMany(e => e.Members)
+                .HasForeignKey(em => em.ExpeditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ExpeditionMember>()
+                .HasOne(em => em.User)
+                .WithMany()
+                .HasForeignKey(em => em.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ExpeditionHex - Unique coordinate per expedition
+            modelBuilder.Entity<ExpeditionHex>()
+                .HasIndex(eh => new { eh.ExpeditionId, eh.Q, eh.R })
+                .IsUnique();
+
+            modelBuilder.Entity<ExpeditionHex>()
+                .HasOne(eh => eh.Expedition)
+                .WithMany(e => e.Hexes)
+                .HasForeignKey(eh => eh.ExpeditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // HexDiscoveryHistory - Relationships
+            modelBuilder.Entity<HexDiscoveryHistory>()
+                .HasOne(h => h.TownMapHex)
+                .WithMany(t => t.DiscoveryHistory)
+                .HasForeignKey(h => h.TownMapHexId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<HexDiscoveryHistory>()
+                .HasOne(h => h.Expedition)
+                .WithMany()
+                .HasForeignKey(h => h.ExpeditionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // PointOfInterest - Relationships (all optional FKs)
+            modelBuilder.Entity<PointOfInterest>()
+                .HasOne(p => p.GMMapHex)
+                .WithMany(g => g.PointsOfInterest)
+                .HasForeignKey(p => p.GMMapHexId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<PointOfInterest>()
+                .HasOne(p => p.TownMapHex)
+                .WithMany(t => t.PointsOfInterest)
+                .HasForeignKey(p => p.TownMapHexId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<PointOfInterest>()
+                .HasOne(p => p.DiscoveredByExpedition)
+                .WithMany()
+                .HasForeignKey(p => p.DiscoveredByExpeditionId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

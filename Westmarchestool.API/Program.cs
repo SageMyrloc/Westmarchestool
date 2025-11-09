@@ -1,9 +1,13 @@
-using Microsoft.EntityFrameworkCore;
-using Westmarchestool.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Westmarchestool.API.Services;
+using Westmarchestool.HexMap.Generation;
+using Westmarchestool.HexMap.Services;
+using Westmarchestool.Infrastructure.Data;
+using Westmarchestool.HexMap.Services;
+using Westmarchestool.HexMap.Generation;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add CORS
@@ -22,6 +26,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlSer
 // Add Authentication Service
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICharacterService, CharacterService>();
+// HexMap Services
+builder.Services.AddScoped<IExpeditionService, ExpeditionService>();
+builder.Services.AddScoped<IMapMergeService, MapMergeService>();
+builder.Services.AddSingleton<TerrainGenerator>(); // Singleton for consistent generation
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
